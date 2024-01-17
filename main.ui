@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1000</width>
+    <height>650</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>800</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>16777215</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>电化学数据可视化分析百宝箱</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="resources.qrc">
+    <normaloff>:/images/images/images/DataPilot_icon.png</normaloff>:/images/images/images/DataPilot_icon.png</iconset>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QMdiArea" name="mdiArea"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1000</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_File">
+    <property name="title">
+     <string>文件</string>
+    </property>
+    <addaction name="action_Open"/>
+    <addaction name="action_Exit"/>
+   </widget>
+   <widget class="QMenu" name="menu_Electrochemistry">
+    <property name="title">
+     <string>电化学模块</string>
+    </property>
+    <addaction name="action_CV"/>
+    <addaction name="action_LSV"/>
+    <addaction name="action_Tafel"/>
+    <addaction name="action_Cdl"/>
+   </widget>
+   <widget class="QMenu" name="menu_About">
+    <property name="title">
+     <string>关于</string>
+    </property>
+    <addaction name="action_About"/>
+   </widget>
+   <addaction name="menu_File"/>
+   <addaction name="menu_Electrochemistry"/>
+   <addaction name="menu_About"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="action_Open">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/icons/文件夹-开_folder-open.svg</normaloff>:/icons/images/icons/文件夹-开_folder-open.svg</iconset>
+   </property>
+   <property name="text">
+    <string>打开</string>
+   </property>
+  </action>
+  <action name="action_Exit">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/icons/退出_logout.svg</normaloff>:/icons/images/icons/退出_logout.svg</iconset>
+   </property>
+   <property name="text">
+    <string>退出</string>
+   </property>
+  </action>
+  <action name="action_CV">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/icons/正弦曲线_sinusoid.svg</normaloff>:/icons/images/icons/正弦曲线_sinusoid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>CV</string>
+   </property>
+  </action>
+  <action name="action_About">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/icons/信息_info.svg</normaloff>:/icons/images/icons/信息_info.svg</iconset>
+   </property>
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="action_LSV">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/icons/曲线调整_curve-adjustment.svg</normaloff>:/icons/images/icons/曲线调整_curve-adjustment.svg</iconset>
+   </property>
+   <property name="text">
+    <string>LSV</string>
+   </property>
+  </action>
+  <action name="action_Tafel">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/icons/折线图_chart-line.svg</normaloff>:/icons/images/icons/折线图_chart-line.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Tafel</string>
+   </property>
+  </action>
+  <action name="action_Cdl">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/icons/脑电图_eeg.svg</normaloff>:/icons/images/icons/脑电图_eeg.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Cdl</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>
