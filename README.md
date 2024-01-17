@@ -3,7 +3,7 @@
 
 <div class="language-selector">
   <a href="README.md">中文</a>
-  <a href="README-En.md">English</a>
+  <a href="README-EN.md">English</a>
 </div>
 
 ![图片](./images/usage.png)
