@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'FunctionWindowOkFBTx.ui'
+## Form generated from reading UI file 'FunctionWindowVWnPIn.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.6.0
+## Created by: Qt User Interface Compiler version 6.4.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -58,6 +58,13 @@ class Ui_MainWindow(object):
 
         self.plainTextEdit_CV = QPlainTextEdit(self.frame_CV)
         self.plainTextEdit_CV.setObjectName(u"plainTextEdit_CV")
+        self.plainTextEdit_CV.setEnabled(True)
+        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.plainTextEdit_CV.sizePolicy().hasHeightForWidth())
+        self.plainTextEdit_CV.setSizePolicy(sizePolicy)
+        self.plainTextEdit_CV.setMinimumSize(QSize(0, 0))
 
         self.verticalLayout.addWidget(self.plainTextEdit_CV)
 
@@ -77,6 +84,11 @@ class Ui_MainWindow(object):
         self.btn_Plot_CV.setObjectName(u"btn_Plot_CV")
 
         self.horizontalLayout.addWidget(self.btn_Plot_CV)
+
+        self.btn_saveData_CV = QPushButton(self.frame_CV)
+        self.btn_saveData_CV.setObjectName(u"btn_saveData_CV")
+
+        self.horizontalLayout.addWidget(self.btn_saveData_CV)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -118,6 +130,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addWidget(self.btn_Plot_LSV)
 
+        self.btn_saveData_LSV = QPushButton(self.frame_LSV)
+        self.btn_saveData_LSV.setObjectName(u"btn_saveData_LSV")
+
+        self.horizontalLayout_2.addWidget(self.btn_saveData_LSV)
+
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
 
@@ -157,6 +174,11 @@ class Ui_MainWindow(object):
         self.btn_Plot_Cdl.setObjectName(u"btn_Plot_Cdl")
 
         self.horizontalLayout_3.addWidget(self.btn_Plot_Cdl)
+
+        self.btn_saveData_Cdl = QPushButton(self.frame_Cdl)
+        self.btn_saveData_Cdl.setObjectName(u"btn_saveData_Cdl")
+
+        self.horizontalLayout_3.addWidget(self.btn_saveData_Cdl)
 
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_3)
@@ -205,6 +227,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_4.addWidget(self.btn_Plot_Tafel)
 
+        self.btn_saveData_Tafel = QPushButton(self.frame_Tafel)
+        self.btn_saveData_Tafel.setObjectName(u"btn_saveData_Tafel")
+
+        self.horizontalLayout_4.addWidget(self.btn_saveData_Tafel)
+
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_4)
 
@@ -228,17 +255,21 @@ class Ui_MainWindow(object):
         self.btn_addData_CV.setText(QCoreApplication.translate("MainWindow", u"\u6dfb\u52a0\u6587\u4ef6", None))
         self.btn_importData_CV.setText(QCoreApplication.translate("MainWindow", u"\u5bfc\u5165\u6570\u636e", None))
         self.btn_Plot_CV.setText(QCoreApplication.translate("MainWindow", u"\u7ed8\u56fe", None))
+        self.btn_saveData_CV.setText(QCoreApplication.translate("MainWindow", u"\u4fdd\u5b58\u6570\u636e", None))
         self.label_LSV.setText(QCoreApplication.translate("MainWindow", u"LSV\u6a21\u5757", None))
         self.btn_addData_LSV.setText(QCoreApplication.translate("MainWindow", u"\u6dfb\u52a0\u6587\u4ef6", None))
         self.btn_importData_LSV.setText(QCoreApplication.translate("MainWindow", u"\u5bfc\u5165\u6570\u636e", None))
         self.btn_Plot_LSV.setText(QCoreApplication.translate("MainWindow", u"\u7ed8\u56fe", None))
+        self.btn_saveData_LSV.setText(QCoreApplication.translate("MainWindow", u"\u4fdd\u5b58\u6570\u636e", None))
         self.label_Cdl.setText(QCoreApplication.translate("MainWindow", u"Cdl\u6a21\u5757", None))
         self.btn_addData_Cdl.setText(QCoreApplication.translate("MainWindow", u"\u6dfb\u52a0\u6587\u4ef6", None))
         self.btn_importData_Cdl.setText(QCoreApplication.translate("MainWindow", u"\u5bfc\u5165\u6570\u636e", None))
         self.btn_Plot_Cdl.setText(QCoreApplication.translate("MainWindow", u"\u7ed8\u56fe", None))
+        self.btn_saveData_Cdl.setText(QCoreApplication.translate("MainWindow", u"\u4fdd\u5b58\u6570\u636e", None))
         self.label_Tafel.setText(QCoreApplication.translate("MainWindow", u"Tafel\u6a21\u5757", None))
         self.btn_addData_Tafel.setText(QCoreApplication.translate("MainWindow", u"\u6dfb\u52a0\u6587\u4ef6", None))
         self.btn_importData_Tafel.setText(QCoreApplication.translate("MainWindow", u"\u5bfc\u5165\u6570\u636e", None))
         self.btn_Plot_Tafel.setText(QCoreApplication.translate("MainWindow", u"\u7ed8\u56fe", None))
+        self.btn_saveData_Tafel.setText(QCoreApplication.translate("MainWindow", u"\u4fdd\u5b58\u6570\u636e", None))
     # retranslateUi
 

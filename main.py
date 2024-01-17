@@ -35,6 +35,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         self.btn_addData_CV.clicked.connect(self.addData_CV)
         self.btn_importData_CV.clicked.connect(self.importData_CV)
         self.btn_Plot_CV.clicked.connect(self.plotData_CV)
+        self.btn_saveData_CV.clicked.connect(self.saveData_CV)
 
 
         # 添加LSV数据存储
@@ -48,6 +49,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         self.btn_addData_LSV.clicked.connect(self.addData_LSV)
         self.btn_importData_LSV.clicked.connect(self.importData_LSV)
         self.btn_Plot_LSV.clicked.connect(self.plotData_LSV)
+        self.btn_saveData_LSV.clicked.connect(self.saveData_LSV)
 
 
         # 添加Cdl数据存储
@@ -61,6 +63,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         self.btn_addData_Cdl.clicked.connect(self.addData_Cdl)
         self.btn_importData_Cdl.clicked.connect(self.importData_Cdl)
         self.btn_Plot_Cdl.clicked.connect(self.plotData_Cdl)
+        self.btn_saveData_Cdl.clicked.connect(self.saveData_Cdl)
 
 
         # 添加 Tafel 数据存储
@@ -74,24 +77,22 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         self.btn_addData_Tafel.clicked.connect(self.addData_Tafel)
         self.btn_importData_Tafel.clicked.connect(self.importData_Tafel)
         self.btn_Plot_Tafel.clicked.connect(self.plotData_Tafel)
+        self.btn_saveData_Tafel.clicked.connect(self.saveData_Tafel)
 
-    def adjustPlainTextEditHeight(self, plainTextEdit: QPlainTextEdit):
+    def adjustPlainTextEditHeight(self, plainTextEdit: QPlainTextEdit, minHeight=72):
         # 获取文本框的字体度量信息
         fontMetrics = QFontMetrics(plainTextEdit.font())
         # 计算文本所需的行数
         text = plainTextEdit.toPlainText()
         lineCount = text.count('\n') + 1 if text else 1
         # 计算文本框所需的高度
-        newHeight = fontMetrics.lineSpacing() * lineCount + 2 * plainTextEdit.frameWidth()
+        newHeight = max(fontMetrics.lineSpacing() * lineCount + 2 * plainTextEdit.frameWidth(), minHeight)
 
-        # 获取文本框当前的高度
-        currentHeight = plainTextEdit.height()
+        # 设置文本框的最小和最大高度
+        plainTextEdit.setMinimumHeight(newHeight + 10)
+        plainTextEdit.setMaximumHeight(newHeight + 10)
 
-        # 如果计算的新高度大于当前高度，则调整文本框的高度
-        if newHeight > currentHeight:
-            plainTextEdit.setMinimumHeight(newHeight + 10)
-            plainTextEdit.setMaximumHeight(newHeight + 10)
-
+############################# CV模块：开始 #############################
     def addData_CV(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Select Excel Files", "", "Excel Files (*.xlsx *.xls)")
         if files:
@@ -104,7 +105,6 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
             # 调整文本框高度以显示所有内容
             self.adjustPlainTextEditHeight(self.plainTextEdit_CV)
 
-############################# CV模块：开始 #############################
     def importData_CV(self):
         if self.isDataImported_CV:  # 如果数据已导入，则清除数据
             self.clearData_CV()
@@ -133,6 +133,9 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
         # 清空文本框
         self.plainTextEdit_CV.setPlainText("")
+
+        # 设置文本框的默认高度
+        self.adjustPlainTextEditHeight(self.plainTextEdit_CV, minHeight=72)
 
         # 恢复按钮文字并重置状态标志
         self.btn_importData_CV.setText("导入数据")
@@ -179,6 +182,40 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         # 调整布局
         plt.tight_layout()
         plt.show()
+
+    def saveData_CV(self):
+        # 检查是否已导入数据
+        if not self.data_CV:
+            QMessageBox.warning(self, "警告", "没有数据可保存！")
+            return
+
+        # 询问用户保存文件的位置
+        save_path, _ = QFileDialog.getSaveFileName(self, "保存文件", "data_CV", "Excel Files (*.xlsx)")
+        if not save_path:
+            return  # 用户取消了保存
+
+        # 创建一个Pandas ExcelWriter对象
+        with pd.ExcelWriter(save_path) as writer:
+            for file, data in zip(self.fileNames_CV, self.data_CV):
+                # 数据处理
+                potential_RHE = data['WE(1).Potential (V)'] + 0.9181  # 转换为RHE电势
+                current_density = data['WE(1).Current (A)'] * 1000 / 1  # 转换为电流密度
+
+                # 创建要保存的DataFrame
+                df_to_save = pd.DataFrame({
+                    'Potential (V vs. RHE)': potential_RHE,
+                    'Current density (mA/cm²)': current_density
+                })
+
+                # 获取文件名作为sheet名（去掉路径和扩展名）
+                # 修改：使用与plotData_CV中相同的方式提取文件名作为sheet名
+                sheet_name = file.split('/')[-2]
+                print(sheet_name)
+
+                # 将数据写入Excel文件的对应sheet
+                df_to_save.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        QMessageBox.information(self, "保存数据", "CV数据已成功保存！")
 ############################# CV模块：结束 #############################
 
 ############################# LSV模块：开始 #############################
@@ -224,6 +261,9 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         # 清空文本框
         self.plainTextEdit_LSV.setPlainText("")
 
+        # 设置文本框的默认高度
+        self.adjustPlainTextEditHeight(self.plainTextEdit_LSV, minHeight=72)
+
         # 恢复按钮文字并重置状态标志
         self.btn_importData_LSV.setText("导入数据")
         self.isDataImported_LSV = False
@@ -253,12 +293,22 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
             # 绘制原始曲线
             ax1.plot(potential_RHE, current_density, label=file.split('/')[-2])
 
+            # 将 Pandas Series 转换为 NumPy 数组
+            current_density_np = current_density.to_numpy()
+            potential_RHE_np = potential_RHE.to_numpy()
+
             # 寻找与 y = 10 交点的横坐标
-            intersections = potential_RHE[current_density >= y_intercept]
-            if not intersections.empty:
-                max_intersection = (intersections.max() - potential_adjustment) * 1000
+            above = current_density_np > y_intercept
+            below = current_density < y_intercept
+
+            # 寻找曲线穿过 y=10 的点
+            intersection_indices = np.where(above[:-1] != above[1:])[0]
+            if intersection_indices.size > 0:
+                # 获取穿过点的横坐标最大值
+                max_intersection = potential_RHE_np[intersection_indices].max()
+                overpotential = (max_intersection - 1.23) * 1000
                 bar_labels.append(file.split('/')[-2])
-                bar_values.append(max_intersection)
+                bar_values.append(overpotential)
 
         # 在第一个子图中添加 y = 10 的水平虚线
         ax1.axhline(y=y_intercept, color='gray', linestyle='--')
@@ -289,6 +339,40 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
         plt.tight_layout()
         plt.show()
+
+    def saveData_LSV(self):
+        # 检查是否已导入数据
+        if not self.data_LSV:
+            QMessageBox.warning(self, "警告", "没有数据可保存！")
+            return
+
+        # 询问用户保存文件的位置
+        save_path, _ = QFileDialog.getSaveFileName(self, "保存文件", "data_LSV", "Excel Files (*.xlsx)")
+        if not save_path:
+            return  # 用户取消了保存
+
+        # 创建一个Pandas ExcelWriter对象
+        with pd.ExcelWriter(save_path) as writer:
+            for file, data in zip(self.fileNames_LSV, self.data_LSV):
+                # 数据处理
+                potential_RHE = data['WE(1).Potential (V)'] + 0.9181  # 转换为RHE电势
+                current_density = data['WE(1).Current (A)'] * 1000 / 1  # 转换为电流密度
+
+                # 创建要保存的DataFrame
+                df_to_save = pd.DataFrame({
+                    'Potential (V vs. RHE)': potential_RHE,
+                    'Current density (mA/cm²)': current_density
+                })
+
+                # 获取文件名作为sheet名（去掉路径和扩展名）
+                # 修改：使用与plotData_LSV中相同的方式提取文件名作为sheet名
+                sheet_name = file.split('/')[-2]
+                print(sheet_name)
+
+                # 将数据写入Excel文件的对应sheet
+                df_to_save.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        QMessageBox.information(self, "保存数据", "LSV数据已成功保存！")
 ############################# LSV模块：结束 #############################
 
 ############################# Cdl模块：开始 #############################
@@ -335,6 +419,9 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
         # 清空文本框
         self.plainTextEdit_Cdl.setPlainText("")
+
+        # 设置文本框的默认高度
+        self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl, minHeight=72)
 
         # 恢复按钮文字并重置状态标志
         self.btn_importData_Cdl.setText("导入数据")
@@ -456,7 +543,49 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
                 plt.tight_layout()  # 自动调整子图参数，使之填充整个图像区域。
                 plt.show()
 
-        print(summary_df)
+        self.summary_df = summary_df
+
+    def saveData_Cdl(self):
+        if not self.data_Cdl:
+            QMessageBox.warning(self, "警告", "没有数据可保存！")
+            return
+
+        # 询问用户保存文件的位置
+        save_path, _ = QFileDialog.getSaveFileName(self, "保存文件", "data_Cdl", "Excel Files (*.xlsx)")
+        if not save_path:
+            return  # 用户取消了保存
+
+        with pd.ExcelWriter(save_path) as writer:
+            for idx, group_data in enumerate(self.data_Cdl):
+                for file_path, data in zip(self.fileGroups_Cdl[idx], group_data):
+                    # 获取文件名和结构名
+                    file_name = os.path.basename(file_path)
+                    structure = os.path.basename(os.path.dirname(file_path))
+
+                    # 提取扫描速率
+                    scan_rate = int(re.search(r'\d+', file_name).group())
+
+                    # 处理数据
+                    last_scan_number = data['Scan'].max() - 1
+                    last_scan_data = data[data['Scan'] == last_scan_number].copy()
+                    last_scan_data['Potential vs. RHE'] = last_scan_data['WE(1).Potential (V)'] + 0.9181
+                    last_scan_data['Current_Density_mA/cm2'] = (last_scan_data['WE(1).Current (A)'] / 1) * 1000
+
+                    # 创建DataFrame
+                    df_to_save = pd.DataFrame({
+                        'Potential vs. RHE': last_scan_data['Potential vs. RHE'],
+                        'Current Density (mA/cm²)': last_scan_data['Current_Density_mA/cm2']
+                    })
+
+                    # 保存到Excel
+                    sheet_name = f'{structure}_{file_name.split(".")[0]}'
+                    df_to_save.to_excel(writer, sheet_name=sheet_name, index=False)
+
+            # 保存 summary_df
+            if hasattr(self, 'summary_df') and not self.summary_df.empty:
+                self.summary_df.to_excel(writer, sheet_name='Summary', index=False)
+
+        QMessageBox.information(self, "保存数据", "Cdl数据已成功保存！")
 ############################# Cdl模块：结束 #############################
 
 ############################# Tafel模块：开始 #############################
@@ -519,6 +648,9 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
         # 清空文本框
         self.plainTextEdit_Tafel.setPlainText("")
+
+        # 设置文本框的默认高度
+        self.adjustPlainTextEditHeight(self.plainTextEdit_Tafel, minHeight=72)
 
         # 移除 frame_TafelSlope 中的所有控件
         layout = self.frame_TafelSlope.layout()
@@ -593,6 +725,50 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
         plt.tight_layout()
         plt.show()
+
+    def saveData_Tafel(self):
+        # 检查是否已导入数据
+        if not self.data_Tafel:
+            QMessageBox.warning(self, "警告", "没有数据可保存！")
+            return
+
+        # 询问用户保存文件的位置
+        save_path, _ = QFileDialog.getSaveFileName(self, "保存文件", "data_Tafel", "Excel Files (*.xlsx)")
+        if not save_path:
+            return  # 用户取消了保存
+
+        # 定义常量
+        electrode_area_cm2 = 1  # 电极面积，单位为cm²
+        potential_shift = 0.9181  # 电压转换到RHE的偏移值
+
+        with pd.ExcelWriter(save_path) as writer:
+            for i, (file, data) in enumerate(zip(self.fileNames_Tafel, self.data_Tafel)):
+                # 转换数据
+                data['Current Density (mA/cm²)'] = data['WE(1).Current (A)'] / electrode_area_cm2 * 1000
+                data['Log Current Density'] = np.log(np.abs(data['Current Density (mA/cm²)']))
+                data['Overpotential (V)'] = data['WE(1).Potential (V)'] + potential_shift - 1.23
+
+                # 获取每个文件对应的两个 lineEdit 中的数值
+                start_row = int(self.frame_TafelSlope.layout().itemAt(i).layout().itemAt(1).widget().text())
+                end_row = int(self.frame_TafelSlope.layout().itemAt(i).layout().itemAt(2).widget().text())
+
+                # 确保索引在数据范围内
+                start_row = max(min(start_row, len(data) - 1), 0)
+                end_row = max(min(end_row, len(data) - 1), start_row)
+
+                # 获取用于绘图的数据范围
+                selected_data = data.iloc[start_row:end_row + 1][['Log Current Density', 'Overpotential (V)']]
+
+                # 保存整个数据集
+                # sheet_name = os.path.splitext(os.path.basename(file))[0]
+                sheet_name = os.path.basename(os.path.dirname(file))
+                data[['Log Current Density', 'Overpotential (V)']].to_excel(writer, sheet_name=sheet_name, index=False)
+
+                # 保存选定的数据范围
+                selected_sheet_name = f"{sheet_name}_{start_row}_{end_row}"
+                selected_data.to_excel(writer, sheet_name=selected_sheet_name, index=False)
+
+        QMessageBox.information(self, "保存数据", "Tafel 数据已成功保存！")
 ############################# Tafel模块：开始 #############################
 
 class NoCloseMDISubWindow(QMdiSubWindow):
