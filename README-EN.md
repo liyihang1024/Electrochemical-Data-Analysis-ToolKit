@@ -27,7 +27,21 @@ Machine Learning Toolkit is a GUI framework for implementing various machine lea
 
 ## Main Features
 
-- Electrochemical Data Analysis ToolKit offers a range of powerful features specifically for the analysis, processing, and visualization of electrochemical test data, including Cyclic Voltammetry (CV), Linear Sweep Voltammetry (LSV), Double Layer Capacitance (Cdl), and Tafel analysis.
+Electrochemical Data Analysis ToolKit offers a range of powerful features specifically for the analysis, processing, and visualization of electrochemical test data, including Cyclic Voltammetry (CV), Linear Sweep Voltammetry (LSV), Double Layer Capacitance (Cdl), and Tafel analysis.
+
+- Cyclic Voltammetry (CV)
+![CV](./images/CV.png)
+
+- Linear Sweep Voltammetry (LSV)
+![LSV](./images/LSV.png)
+
+- Double Layer Capacitance (Cdl)
+![Cdl_1](./images/Cdl_1.png)
+
+![Cdl_2](./images/Cdl_2.png)
+
+- Tafel analysis
+![Tafel](./images/Tafel.png)
 
 ## Dependencies
 

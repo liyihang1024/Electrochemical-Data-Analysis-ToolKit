@@ -6,7 +6,7 @@
   <a href="README-EN.md">English</a>
 </div>
 
-![图片](./images/usage.png)
+![简介](./images/usage.png)
 
 ## 目录
 
@@ -27,7 +27,21 @@ Machine Learning Toolkit 是一个用于实现各种机器学习算法预测的G
 
 ## 主要功能
 
-- Electrochemical Data Analysis ToolKit 提供了一系列强大的功能，专门针对电化学测试数据的分析、处理和可视化，包括循环伏安法（CV）、线性扫描伏安法（LSV）、双电层电容（Cdl）和Tafel分析等。
+Electrochemical Data Analysis ToolKit 提供了一系列强大的功能，专门针对电化学测试数据的分析、处理和可视化，包括循环伏安法（CV）、线性扫描伏安法（LSV）、双电层电容（Cdl）和Tafel分析等。
+
+- 循环伏安法（CV）
+![CV](./images/CV.png)
+
+- 线性扫描伏安法（LSV）
+![LSV](./images/LSV.png)
+
+- 双电层电容（Cdl）
+![Cdl_1](./images/Cdl_1.png)
+
+![Cdl_2](./images/Cdl_2.png)
+
+- Tafel分析
+![Tafel](./images/Tafel.png)
 
 ## 依赖条件
 
