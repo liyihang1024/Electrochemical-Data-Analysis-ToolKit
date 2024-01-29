@@ -3,6 +3,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from PySide6.QtWidgets import QApplication, QMainWindow, QMdiSubWindow, QFileDialog, QMessageBox, QPlainTextEdit, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout
 from PySide6.QtCore import QThread, Slot
@@ -151,7 +152,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         ncols = min(num_plots, 3)
         nrows = num_plots // ncols + (1 if num_plots % ncols else 0)
 
-        fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(5 * ncols, 4 * nrows))
+        fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(5 * ncols, 4 * nrows), constrained_layout=True)
 
         # 如果只有一个图，确保 axes 是一个列表
         if num_plots == 1:
@@ -166,21 +167,78 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         potential_shift = 0.9181  # 电压转换到RHE的偏移值
 
         for ax, (file, data) in zip(axes, zip(self.fileNames_CV, self.data_CV)):
-            # 数据处理
-            potential_RHE = data['WE(1).Potential (V)'] +  potential_shift  # 转换为RHE电势
-            current_density = data['WE(1).Current (A)'] * 1000 / electrode_area_cm2  # 转换为电流密度
+            # 计算不同扫描（Scan）的数量
+            scans = data['Scan'].unique()
 
-            # 绘图
-            ax.plot(potential_RHE, current_density, label=file.split('/')[-2])
+            # 定义颜色映射
+            color_map = matplotlib.colormaps.get_cmap('jet')
+            colors = [color_map(i / len(scans)) for i in range(len(scans))]
+
+            # 按扫描编号绘制每一圈的数据
+            for i, scan in enumerate(scans):
+                scan_data = data[data['Scan'] == scan]
+                potential = scan_data['WE(1).Potential (V)'] +  potential_shift  # 转换为RHE电势
+                current = scan_data['WE(1).Current (A)'] * 1000 / electrode_area_cm2  # 转换为电流密度
+
+                # 将第一个元素复制并添加到列表末尾
+                potential = pd.concat([potential, pd.Series([potential.iloc[0]])], ignore_index=True)
+                current = pd.concat([current, pd.Series([current.iloc[0]])], ignore_index=True)
+
+                # 循环绘制每一圈的数据
+                # 只在循环的第一次迭代中设置图例标签
+                if i == 0:
+                    ax.plot(potential, current, color=colors[i], label=file.split('/')[-2])
+                else:
+                    ax.plot(potential, current, color=colors[i])
 
             # 设置坐标轴标签
             ax.set_xlabel("Potential (V vs. RHE)")
             ax.set_ylabel("Current density (mA/cm²)")
-            # 设置图例
-            ax.legend(loc='best', frameon=False, shadow=False)
 
-        # 调整布局
-        plt.tight_layout()
+            # 添加网格
+            ax.grid(True, linestyle='--')
+
+            # 设置图例
+            legend = ax.legend(loc='best', frameon=False, shadow=False)
+
+            # 从legend对象中获取句柄
+            handles = legend.legend_handles
+            # 单独设置每个句柄的颜色
+            handles[0].set_color('white')
+
+            # 触发渲染过程以初始化渲染器
+            plt.gcf().canvas.draw()
+
+            # 获取图例的像素坐标
+            legend_fig_coord = legend.get_window_extent().get_points()
+
+            # 获取图形的尺寸（英寸）
+            size_inches = fig.get_size_inches()
+
+            # 获取图形的DPI
+            dpi = fig.dpi
+
+            # 计算图形的尺寸（像素）
+            width_pixels = size_inches[0] * dpi
+            height_pixels = size_inches[1] * dpi
+
+            # 创建颜色条
+            norm = mpl.colors.Normalize(vmin=scans.min(), vmax=scans.max())
+            sm = plt.cm.ScalarMappable(cmap=color_map, norm=norm)
+            sm.set_array([])
+            # 创建专门用于颜色条的Axes对象，并指定位置和大小
+            # 根据转换后的坐标调整颜色条的位置和大小
+            cbar_left = legend_fig_coord[0][0]/width_pixels+0.01
+            cbar_bottom = legend_fig_coord[0][1]/height_pixels-0.03
+            cbar_width = 0.08
+            cbar_height = 0.02
+            cbar_ax = fig.add_axes([cbar_left, cbar_bottom, cbar_width, cbar_height])
+            cbar = plt.colorbar(sm, cax=cbar_ax, orientation='horizontal')
+            cbar.set_label('Scan')
+            cbar.set_ticks([scans.min(), scans.max()])  # 设置颜色条上的刻度为最小和最大扫描数
+            cbar.set_ticklabels([str(scans.min()), str(scans.max())])  # 设置对应的标签
+
+        # 绘图
         plt.show()
 
     def saveData_CV(self):
