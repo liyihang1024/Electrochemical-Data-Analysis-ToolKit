@@ -22,6 +22,10 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         super(FunctionWindow, self).__init__(parent)
         self.setupUi(self)
 
+        # 定义常量
+        self.electrode_area  = float(self.lineEdit_electrode_area.text() )  # 电极面积，单位为cm²
+        self.potential_shift = float(self.lineEdit_potential_shift.text())  # 电压转换到RHE的偏移值
+
         # 为frame_TafelSlope添加垂直布局
         self.frame_TafelSlope.setLayout(QVBoxLayout())
         
@@ -56,6 +60,12 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         # 添加Cdl数据存储
         self.data_Cdl = []
         self.fileGroups_Cdl = []  # 初始化文件组列表
+
+        # 初始化一个空的 list 用于存储所有处理后的Cdl电势和电流密度数据用于后续导出
+        self.list_Cdl_data = []
+
+        # 将处理后的阳极和阴极电流密度信息保存用于后续导出
+        self.summary_df_Cdl = None
 
         # 设置标志来追踪按钮的状态（False表示当前为导入数据状态）
         self.isDataImported_Cdl = False
@@ -95,16 +105,23 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
 ############################# CV模块：开始 #############################
     def addData_CV(self):
-        files, _ = QFileDialog.getOpenFileNames(self, "Select Excel Files", "", "Excel Files (*.xlsx *.xls)")
+        files, _ = QFileDialog.getOpenFileNames(self, "选择Excel文件", "", "Excel文件 (*.xlsx *.xls)")
         if files:
             self.fileNames_CV.extend(files)
             # 将新文件路径添加到文本框中
-            current_text = self.plainTextEdit_CV.toPlainText()
+            current_text = self.plainTextEdit_CV_Data.toPlainText()
             new_text = "\n".join(files) if not current_text else current_text + "\n" + "\n".join(files)
-            self.plainTextEdit_CV.setPlainText(new_text)
+            self.plainTextEdit_CV_Data.setPlainText(new_text)
+
+            # 将每组数据的父文件夹名保存在 plainTextEdit_CV_Label 中
+            for file in files:
+                folder_name = os.path.basename(os.path.dirname(file))  # 获取父文件夹名
+                current_label_text = self.plainTextEdit_CV_Label.toPlainText()
+                new_label_text = folder_name if not current_label_text else current_label_text + "\n" + folder_name
+                self.plainTextEdit_CV_Label.setPlainText(new_label_text)
 
             # 调整文本框高度以显示所有内容
-            self.adjustPlainTextEditHeight(self.plainTextEdit_CV)
+            self.adjustPlainTextEditHeight(self.plainTextEdit_CV_Data)
 
     def importData_CV(self):
         if self.isDataImported_CV:  # 如果数据已导入，则清除数据
@@ -133,10 +150,11 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         self.fileNames_CV.clear()
 
         # 清空文本框
-        self.plainTextEdit_CV.setPlainText("")
+        self.plainTextEdit_CV_Data.setPlainText("")
+        self.plainTextEdit_CV_Label.setPlainText("")
 
         # 设置文本框的默认高度
-        self.adjustPlainTextEditHeight(self.plainTextEdit_CV, minHeight=72)
+        self.adjustPlainTextEditHeight(self.plainTextEdit_CV_Data, minHeight=72)
 
         # 恢复按钮文字并重置状态标志
         self.btn_importData_CV.setText("导入数据")
@@ -162,32 +180,32 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         if num_plots > 1:
             axes = axes.flatten()
 
-        # 定义常量
-        electrode_area_cm2 = 1  # 电极面积，单位为cm²
-        potential_shift = 0.9181  # 电压转换到RHE的偏移值
+        # 使用 plainTextEdit_CV_Label 中的每行内容作为标签
+        label_text = self.plainTextEdit_CV_Label.toPlainText().split("\n")
 
-        for ax, (file, data) in zip(axes, zip(self.fileNames_CV, self.data_CV)):
+        for ax, data, label in zip(axes, self.data_CV, label_text):
             # 计算不同扫描（Scan）的数量
             scans = data['Scan'].unique()
 
             # 定义颜色映射
             color_map = matplotlib.colormaps.get_cmap('jet')
             colors = [color_map(i / len(scans)) for i in range(len(scans))]
-
+            
             # 按扫描编号绘制每一圈的数据
             for i, scan in enumerate(scans):
                 scan_data = data[data['Scan'] == scan]
-                potential = scan_data['WE(1).Potential (V)'] +  potential_shift  # 转换为RHE电势
-                current = scan_data['WE(1).Current (A)'] * 1000 / electrode_area_cm2  # 转换为电流密度
+                potential = scan_data['WE(1).Potential (V)'] + self.potential_shift      # 转换为RHE电势
+                current   = scan_data['WE(1).Current (A)'] * 1000 / self.electrode_area  # 转换为电流密度
 
                 # 将第一个元素复制并添加到列表末尾
                 potential = pd.concat([potential, pd.Series([potential.iloc[0]])], ignore_index=True)
                 current = pd.concat([current, pd.Series([current.iloc[0]])], ignore_index=True)
 
                 # 循环绘制每一圈的数据
+                
                 # 只在循环的第一次迭代中设置图例标签
                 if i == 0:
-                    ax.plot(potential, current, color=colors[i], label=file.split('/')[-2])
+                    ax.plot(potential, current, color=colors[i], label=label)
                 else:
                     ax.plot(potential, current, color=colors[i])
 
@@ -252,12 +270,15 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         if not save_path:
             return  # 用户取消了保存
 
+        # 使用 plainTextEdit_CV_Label 中的每行内容作为标签
+        sample_text = self.plainTextEdit_CV_Label.toPlainText().split("\n")
+
         # 创建一个Pandas ExcelWriter对象
         with pd.ExcelWriter(save_path) as writer:
-            for file, data in zip(self.fileNames_CV, self.data_CV):
+            for sample, data in zip(sample_text, self.data_CV):
                 # 数据处理
-                potential_RHE = data['WE(1).Potential (V)'] + 0.9181  # 转换为RHE电势
-                current_density = data['WE(1).Current (A)'] * 1000 / 1  # 转换为电流密度
+                potential_RHE = data['WE(1).Potential (V)'] + self.potential_shift  # 转换为RHE电势
+                current_density = data['WE(1).Current (A)'] * 1000 / self.electrode_area  # 转换为电流密度
 
                 # 创建要保存的DataFrame
                 df_to_save = pd.DataFrame({
@@ -267,8 +288,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
                 # 获取文件名作为sheet名（去掉路径和扩展名）
                 # 修改：使用与plotData_CV中相同的方式提取文件名作为sheet名
-                sheet_name = file.split('/')[-2]
-                print(sheet_name)
+                sheet_name = sample
 
                 # 将数据写入Excel文件的对应sheet
                 df_to_save.to_excel(writer, sheet_name=sheet_name, index=False)
@@ -283,12 +303,19 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         if files:
             self.fileNames_LSV.extend(files)
             # 将新文件路径添加到文本框中
-            current_text = self.plainTextEdit_LSV.toPlainText()
+            current_text = self.plainTextEdit_LSV_Data.toPlainText()
             new_text = "\n".join(files) if not current_text else current_text + "\n" + "\n".join(files)
-            self.plainTextEdit_LSV.setPlainText(new_text)
+            self.plainTextEdit_LSV_Data.setPlainText(new_text)
+
+            # 将每组数据的父文件夹名保存在 plainTextEdit_LSV_Label 中
+            for file in files:
+                folder_name = os.path.basename(os.path.dirname(file))  # 获取父文件夹名
+                current_label_text = self.plainTextEdit_LSV_Label.toPlainText()
+                new_label_text = folder_name if not current_label_text else current_label_text + "\n" + folder_name
+                self.plainTextEdit_LSV_Label.setPlainText(new_label_text)
 
             # 调整文本框高度以显示所有内容
-            self.adjustPlainTextEditHeight(self.plainTextEdit_LSV)
+            self.adjustPlainTextEditHeight(self.plainTextEdit_LSV_Data)
 
     # LSV数据导入方法
     def importData_LSV(self):
@@ -317,10 +344,11 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         self.fileNames_LSV.clear()
 
         # 清空文本框
-        self.plainTextEdit_LSV.setPlainText("")
+        self.plainTextEdit_LSV_Data.setPlainText("")
+        self.plainTextEdit_LSV_Label.setPlainText("")
 
         # 设置文本框的默认高度
-        self.adjustPlainTextEditHeight(self.plainTextEdit_LSV, minHeight=72)
+        self.adjustPlainTextEditHeight(self.plainTextEdit_LSV_Data, minHeight=72)
 
         # 恢复按钮文字并重置状态标志
         self.btn_importData_LSV.setText("导入数据")
@@ -336,20 +364,20 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
         # 定义常量
-        electrode_area_cm2 = 1  # 电极面积，单位为cm²
-        potential_shift = 0.9181  # 电压转换到RHE的偏移值
         y_intercept = 10  # y = 10 的水平线
-        potential_adjustment = 1.23  # 减去的横坐标值
 
         bar_labels = []
         bar_values = []
 
-        for file, data in zip(self.fileNames_LSV, self.data_LSV):
-            potential_RHE = data['WE(1).Potential (V)'] + potential_shift
-            current_density = data['WE(1).Current (A)'] * 1000 / electrode_area_cm2
+        # 使用 plainTextEdit_LSV_Label 中的每行内容作为标签
+        label_text = self.plainTextEdit_LSV_Label.toPlainText().split("\n")
+
+        for data, label in zip(self.data_LSV, label_text):
+            potential_RHE = data['WE(1).Potential (V)'] + self.potential_shift
+            current_density = data['WE(1).Current (A)'] * 1000 / self.electrode_area
 
             # 绘制原始曲线
-            ax1.plot(potential_RHE, current_density, label=file.split('/')[-2])
+            ax1.plot(potential_RHE, current_density, label=label)
 
             # 将 Pandas Series 转换为 NumPy 数组
             current_density_np = current_density.to_numpy()
@@ -365,14 +393,14 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
                 # 获取穿过点的横坐标最大值
                 max_intersection = potential_RHE_np[intersection_indices].max()
                 overpotential = (max_intersection - 1.23) * 1000
-                bar_labels.append(file.split('/')[-2])
+                bar_labels.append(label)
                 bar_values.append(overpotential)
 
         # 在第一个子图中添加 y = 10 的水平虚线
         ax1.axhline(y=y_intercept, color='gray', linestyle='--')
 
         ax1.set_xlabel("Potential (V vs. RHE)")
-        ax1.set_ylabel("Current (A)")
+        ax1.set_ylabel("Current density (mA/cm²)")
         ax1.legend(loc='best', frameon=False, shadow=False)
 
         # 在第二个子图中绘制柱状图，调整柱子宽度并添加标签
@@ -409,12 +437,15 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         if not save_path:
             return  # 用户取消了保存
 
+        # 使用 plainTextEdit_LSV_Label 中的每行内容作为标签
+        sample_text = self.plainTextEdit_LSV_Label.toPlainText().split("\n")
+
         # 创建一个Pandas ExcelWriter对象
         with pd.ExcelWriter(save_path) as writer:
-            for file, data in zip(self.fileNames_LSV, self.data_LSV):
+            for sample, data in zip(sample_text, self.data_LSV):
                 # 数据处理
-                potential_RHE = data['WE(1).Potential (V)'] + 0.9181  # 转换为RHE电势
-                current_density = data['WE(1).Current (A)'] * 1000 / 1  # 转换为电流密度
+                potential_RHE = data['WE(1).Potential (V)'] + self.potential_shift  # 转换为RHE电势
+                current_density = data['WE(1).Current (A)'] * 1000 / self.electrode_area  # 转换为电流密度
 
                 # 创建要保存的DataFrame
                 df_to_save = pd.DataFrame({
@@ -424,8 +455,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
                 # 获取文件名作为sheet名（去掉路径和扩展名）
                 # 修改：使用与plotData_LSV中相同的方式提取文件名作为sheet名
-                sheet_name = file.split('/')[-2]
-                print(sheet_name)
+                sheet_name = sample
 
                 # 将数据写入Excel文件的对应sheet
                 df_to_save.to_excel(writer, sheet_name=sheet_name, index=False)
@@ -440,14 +470,25 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         if files:
             self.fileGroups_Cdl.append(files)  # 每次添加的文件作为一组
             # 更新UI以显示选择的文件
-            current_text = self.plainTextEdit_Cdl.toPlainText()
-            print(current_text)
+            current_text = self.plainTextEdit_Cdl_Data.toPlainText()
+            
             new_text = "\n".join(files) if not current_text else current_text + "\n\n" + "\n".join(files)
-            print(new_text)
-            self.plainTextEdit_Cdl.setPlainText(new_text)
+            
+            self.plainTextEdit_Cdl_Data.setPlainText(new_text)
+
+            # 将每组数据的父文件夹名保存在 plainTextEdit_Cdl_Label 中
+            folder_name = os.path.basename(os.path.dirname(files[0]))  # 获取父文件夹名
+            current_label_text = self.plainTextEdit_Cdl_Label.toPlainText()
+
+            if current_label_text:  # 检查是否为空
+                new_label_text = current_label_text + "\n" + folder_name
+            else:
+                new_label_text = folder_name
+
+            self.plainTextEdit_Cdl_Label.setPlainText(new_label_text)
 
             # 调整文本框高度以显示所有内容
-            self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl)
+            self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl_Data)
 
     # Cdl数据导入方法
     def importData_Cdl(self):
@@ -476,10 +517,11 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         self.fileGroups_Cdl.clear()
 
         # 清空文本框
-        self.plainTextEdit_Cdl.setPlainText("")
+        self.plainTextEdit_Cdl_Data.setPlainText("")
+        self.plainTextEdit_Cdl_Label.setPlainText("")
 
         # 设置文本框的默认高度
-        self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl, minHeight=72)
+        self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl_Data, minHeight=72)
 
         # 恢复按钮文字并重置状态标志
         self.btn_importData_Cdl.setText("导入数据")
@@ -490,13 +532,6 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         if not self.data_Cdl:
             QMessageBox.warning(self, "警告", "请先导入数据！")
             return
-
-        # 定义常量
-        electrode_area_cm2 = 1  # 电极面积，单位为cm²
-        potential_shift = 0.9181  # 电压转换到RHE的偏移值
-
-        # 初始化存储电流密度差和扫描速率的DataFrame
-        # summary_df = pd.DataFrame(columns=['Group', 'Scan Rate (mV/s)', 'Current Density Difference (mA/cm²)'])
 
         # 初始化 summary_df，指定数据类型
         summary_df = pd.DataFrame(columns=['Group', 'structure', 'Scan Rate (mV/s)', 'Anodic Current Density (mA/cm²)', 'Cathodic Current Density (mA/cm²)', 'Current Density Difference (mA/cm²)']).astype({
@@ -513,20 +548,24 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         num_groups = len(self.data_Cdl)
         nrows, ncols = (1, num_groups) if num_groups <= 3 else (-(-num_groups // 3), 3)
 
-        # 创建子图
+        # 创建不同扫速Cdl曲线子图
         fig, axs = plt.subplots(nrows, ncols, figsize=(4 * ncols, 4 * nrows), squeeze=False)
         axs = axs.flatten()
 
+        # 使用 plainTextEdit_Cdl_Label 中的每行内容作为标签
+        label_text = self.plainTextEdit_Cdl_Label.toPlainText().split("\n")
+       
         # 遍历每组数据并在相应的子图中绘制
         for idx, (ax, group_data) in enumerate(zip(axs, self.data_Cdl)):
             scan_rates = []
             current_density_differences = []
 
+            # 初始化一个空的 DataFrame 用于存储数据
+            merged_data = pd.DataFrame()
+
             for file_path, data in zip(self.fileGroups_Cdl[idx], group_data):
                 # 获取最后一个部分（文件名或最末级文件夹名）
                 file_name = os.path.basename(file_path)
-                # 获取倒数第二个部分（上级目录名）
-                structure = os.path.basename(os.path.dirname(file_path))
 
                 # 提取扫描速率（从文件名中提取数字）
                 scan_rate = int(re.search(r'\d+', file_name).group())
@@ -537,8 +576,8 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
                 last_scan_data = data[data['Scan'] == last_scan_number].copy()
 
                 # 转换电压到RHE和电流到电流密度
-                last_scan_data['Potential vs. RHE'] = last_scan_data['WE(1).Potential (V)'] + potential_shift
-                last_scan_data['Current_Density_mA/cm2'] = (last_scan_data['WE(1).Current (A)'] / electrode_area_cm2) * 1000
+                last_scan_data['Potential vs. RHE'] = last_scan_data['WE(1).Potential (V)'] + self.potential_shift
+                last_scan_data['Current_Density_mA/cm2'] = last_scan_data['WE(1).Current (A)']*1000 / self.electrode_area
 
                 # 计算电流密度差
                 potential_midpoint = last_scan_data['Potential vs. RHE'].mean()
@@ -550,7 +589,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
                 new_row = pd.DataFrame({
                     'Group': [idx],
-                    'structure':structure,
+                    'structure':label_text[idx],
                     'Scan Rate (mV/s)':scan_rate,
                     'Anodic Current Density (mA/cm²)': [anodic_current_density],
                     'Cathodic Current Density (mA/cm²)': [cathodic_current_density],
@@ -561,11 +600,22 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
                 # 复制第一行并添加到DataFrame的末尾用于绘制闭合曲线
                 last_scan_data = pd.concat([last_scan_data, last_scan_data.iloc[[0]]], ignore_index=True)
 
+                # 从 last_scan_data 中选择要合并的列，并将其添加到 merged_data 中
+                selected_columns = ['Potential vs. RHE', 'Current_Density_mA/cm2']
+                merged_data = pd.concat([merged_data, last_scan_data[selected_columns]], axis=1)
+
                 # 绘制电流密度与电压的关系图
-                ax.plot(last_scan_data['Potential vs. RHE'], last_scan_data['Current_Density_mA/cm2'])
-                ax.set_title(f"{structure}")
+                ax.plot(last_scan_data['Potential vs. RHE'], last_scan_data['Current_Density_mA/cm2'], label=str(scan_rate) + " mV/s")
+                ax.set_title(f"{label_text[idx]}")
                 ax.set_xlabel("Potential (V vs. RHE)")
                 ax.set_ylabel("Current Density (mA/cm²)")
+                ax.legend(loc='best', frameon=False, shadow=False)
+            
+            # 将每组数据处理后的电势和电流密度保存
+            self.list_Cdl_data.append(merged_data)
+        
+        # 将处理后的阳极和阴极电流密度信息保存用于后续导出
+        self.summary_df_Cdl = summary_df
 
         # 隐藏多余的子图
         for ax in axs[num_groups:]:
@@ -576,6 +626,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         plt.show()
 
 
+        # 绘制Cdl散点图和拟合直线
         # 确定有多少不同的组
         num_groups = summary_df['Group'].nunique()
 
@@ -588,8 +639,8 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
             group_df = summary_df[summary_df['Group'] == i]
             scan_rates = group_df['Scan Rate (mV/s)']
             current_diffs = group_df['Current Density Difference (mA/cm²)']
-            structure = group_df['structure'].iloc[0]
-            ax_scatter.scatter(scan_rates, current_diffs, color=colors[i], label=f'{structure}')
+            label = group_df['structure'].iloc[0]
+            ax_scatter.scatter(scan_rates, current_diffs, color=colors[i], label=label)
 
             # 执行线性拟合
             if len(scan_rates) > 1:  # 需要至少两点才能进行拟合
@@ -613,35 +664,15 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         if not save_path:
             return  # 用户取消了保存
 
+        # 使用 plainTextEdit_Cdl_Label 中的每行内容作为标签
+        sample_text = self.plainTextEdit_Cdl_Label.toPlainText().split("\n")
+
+        # 创建一个Pandas ExcelWriter对象
         with pd.ExcelWriter(save_path) as writer:
-            for idx, group_data in enumerate(self.data_Cdl):
-                for file_path, data in zip(self.fileGroups_Cdl[idx], group_data):
-                    # 获取文件名和结构名
-                    file_name = os.path.basename(file_path)
-                    structure = os.path.basename(os.path.dirname(file_path))
-
-                    # 提取扫描速率
-                    scan_rate = int(re.search(r'\d+', file_name).group())
-
-                    # 处理数据
-                    last_scan_number = data['Scan'].max() - 1
-                    last_scan_data = data[data['Scan'] == last_scan_number].copy()
-                    last_scan_data['Potential vs. RHE'] = last_scan_data['WE(1).Potential (V)'] + 0.9181
-                    last_scan_data['Current_Density_mA/cm2'] = (last_scan_data['WE(1).Current (A)'] / 1) * 1000
-
-                    # 创建DataFrame
-                    df_to_save = pd.DataFrame({
-                        'Potential vs. RHE': last_scan_data['Potential vs. RHE'],
-                        'Current Density (mA/cm²)': last_scan_data['Current_Density_mA/cm2']
-                    })
-
-                    # 保存到Excel
-                    sheet_name = f'{structure}_{file_name.split(".")[0]}'
-                    df_to_save.to_excel(writer, sheet_name=sheet_name, index=False)
-
-            # 保存 summary_df
-            if hasattr(self, 'summary_df') and not self.summary_df.empty:
-                self.summary_df.to_excel(writer, sheet_name='Summary', index=False)
+            for sample, data in zip(sample_text, self.list_Cdl_data):
+                # 将数据写入Excel文件的对应sheet
+                data.to_excel(writer, sheet_name=sample, index=False)
+            self.summary_df_Cdl.to_excel(writer, sheet_name='summary')
 
         QMessageBox.information(self, "保存数据", "Cdl数据已成功保存！")
 ############################# Cdl模块：结束 #############################
@@ -653,11 +684,19 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         if files:
             self.fileNames_Tafel.extend(files)
             # 更新 UI 以显示选择的文件
-            current_text = self.plainTextEdit_Tafel.toPlainText()
+            current_text = self.plainTextEdit_Tafel_Data.toPlainText()
             new_text = "\n".join(files) if not current_text else current_text + "\n" + "\n".join(files)
-            self.plainTextEdit_Tafel.setPlainText(new_text)
+            self.plainTextEdit_Tafel_Data.setPlainText(new_text)
+
+            # 将每组数据的父文件夹名保存在 plainTextEdit_Tafel_Label 中
+            for file in files:
+                folder_name = os.path.basename(os.path.dirname(file))  # 获取父文件夹名
+                current_label_text = self.plainTextEdit_Tafel_Label.toPlainText()
+                new_label_text = folder_name if not current_label_text else current_label_text + "\n" + folder_name
+                self.plainTextEdit_Tafel_Label.setPlainText(new_label_text)
+
             # 调整文本框高度以显示所有内容
-            self.adjustPlainTextEditHeight(self.plainTextEdit_Tafel)
+            self.adjustPlainTextEditHeight(self.plainTextEdit_Tafel_Data)
 
     # Tafel 数据导入方法
     def importData_Tafel(self):
@@ -705,10 +744,11 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         self.fileNames_Tafel.clear()
 
         # 清空文本框
-        self.plainTextEdit_Tafel.setPlainText("")
+        self.plainTextEdit_Tafel_Data.setPlainText("")
+        self.plainTextEdit_Tafel_Label.setPlainText("")
 
         # 设置文本框的默认高度
-        self.adjustPlainTextEditHeight(self.plainTextEdit_Tafel, minHeight=72)
+        self.adjustPlainTextEditHeight(self.plainTextEdit_Tafel_Data, minHeight=72)
 
         # 移除 frame_TafelSlope 中的所有控件
         layout = self.frame_TafelSlope.layout()
@@ -735,19 +775,18 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
             QMessageBox.warning(self, "警告", "请先导入数据！")
             return
 
-        # 定义常量
-        electrode_area_cm2 = 1  # 电极面积，单位为cm²
-        potential_shift = 0.9181  # 电压转换到RHE的偏移值
+        # 使用 plainTextEdit_Tafel_Label 中的每行内容作为标签
+        label_text = self.plainTextEdit_Tafel_Label.toPlainText().split("\n")
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))  # 创建左右两个子图
-        for i, (file, data) in enumerate(zip(self.fileNames_Tafel, self.data_Tafel)):
+        for i, (label, data) in enumerate(zip(label_text, self.data_Tafel)):
             # 转换数据
-            data['Current Density (mA/cm²)'] = data['WE(1).Current (A)'] / electrode_area_cm2 * 1000
-            data['Log Current Density'] = np.log(np.abs(data['Current Density (mA/cm²)']))
-            data['Overpotential (V)'] = data['WE(1).Potential (V)'] + potential_shift - 1.23
+            data['Current Density (mA/cm²)'] = data['WE(1).Current (A)'] / self.electrode_area * 1000
+            data['Log Current Density'] = np.log10(np.abs(data['Current Density (mA/cm²)']))
+            data['Overpotential (V)'] = data['WE(1).Potential (V)'] + self.potential_shift - 1.23
 
             # 绘制左边的子图
-            ax1.plot(data['Log Current Density'], data['Overpotential (V)'], label=os.path.basename(os.path.dirname(file)))
+            ax1.plot(data['Log Current Density'], data['Overpotential (V)'], label=label)
 
             # 获取每个文件对应的两个 lineEdit 中的数值
             start_row = int(self.frame_TafelSlope.layout().itemAt(i).layout().itemAt(1).widget().text())
@@ -763,14 +802,14 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
             # 在右边的子图中绘制散点图
             selected_data = data.iloc[start_row:end_row + 1]  # 获取选定的数据范围
-            ax2.scatter(selected_data['Log Current Density'], selected_data['Overpotential (V)'], label=os.path.basename(os.path.dirname(file)))
+            ax2.scatter(selected_data['Log Current Density'], selected_data['Overpotential (V)'], label=label)
 
             # 线性回归分析并绘制拟合直线
             slope, intercept = np.polyfit(selected_data['Log Current Density'], selected_data['Overpotential (V)'], 1)
-            ax2.plot(selected_data['Log Current Density'], slope * selected_data['Log Current Density'] + intercept, label=f'Fit: Tafel slope = {slope*1000:.2f} mV dec$^{{-1}}$')
+            ax2.plot(selected_data['Log Current Density'], slope * selected_data['Log Current Density'] + intercept, label=f'Fit: Tafel slope : {slope*1000:.2f} mV dec$^{{-1}}$')
 
             # 打印斜率
-            print(f"Slope for {os.path.basename(os.path.dirname(file))}: {slope:.2f}")
+            print(f"Slope for {label} from {start_row} to {end_row}: {slope:.2f} mV/dec")
 
         # 设置两个子图的标签和图例
         ax1.set_xlabel('Log j (mA/cm²)')
@@ -795,16 +834,12 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
         if not save_path:
             return  # 用户取消了保存
 
-        # 定义常量
-        electrode_area_cm2 = 1  # 电极面积，单位为cm²
-        potential_shift = 0.9181  # 电压转换到RHE的偏移值
-
         with pd.ExcelWriter(save_path) as writer:
             for i, (file, data) in enumerate(zip(self.fileNames_Tafel, self.data_Tafel)):
                 # 转换数据
-                data['Current Density (mA/cm²)'] = data['WE(1).Current (A)'] / electrode_area_cm2 * 1000
-                data['Log Current Density'] = np.log(np.abs(data['Current Density (mA/cm²)']))
-                data['Overpotential (V)'] = data['WE(1).Potential (V)'] + potential_shift - 1.23
+                data['Current Density (mA/cm²)'] = data['WE(1).Current (A)'] / self.electrode_area * 1000
+                data['Log Current Density'] = np.log10(np.abs(data['Current Density (mA/cm²)']))
+                data['Overpotential (V)'] = data['WE(1).Potential (V)'] + self.potential_shift - 1.23
 
                 # 获取每个文件对应的两个 lineEdit 中的数值
                 start_row = int(self.frame_TafelSlope.layout().itemAt(i).layout().itemAt(1).widget().text())
@@ -827,7 +862,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
                 selected_data.to_excel(writer, sheet_name=selected_sheet_name, index=False)
 
         QMessageBox.information(self, "保存数据", "Tafel 数据已成功保存！")
-############################# Tafel模块：开始 #############################
+############################# Tafel模块：结束 #############################
 
 class NoCloseMDISubWindow(QMdiSubWindow):
     def closeEvent(self, event):
