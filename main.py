@@ -122,6 +122,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
             # 调整文本框高度以显示所有内容
             self.adjustPlainTextEditHeight(self.plainTextEdit_CV_Data)
+            self.adjustPlainTextEditHeight(self.plainTextEdit_CV_Label)
 
     def importData_CV(self):
         if self.isDataImported_CV:  # 如果数据已导入，则清除数据
@@ -155,6 +156,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
         # 设置文本框的默认高度
         self.adjustPlainTextEditHeight(self.plainTextEdit_CV_Data, minHeight=72)
+        self.adjustPlainTextEditHeight(self.plainTextEdit_CV_Label, minHeight=72)
 
         # 恢复按钮文字并重置状态标志
         self.btn_importData_CV.setText("导入数据")
@@ -316,6 +318,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
             # 调整文本框高度以显示所有内容
             self.adjustPlainTextEditHeight(self.plainTextEdit_LSV_Data)
+            self.adjustPlainTextEditHeight(self.plainTextEdit_LSV_Label)
 
     # LSV数据导入方法
     def importData_LSV(self):
@@ -349,6 +352,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
         # 设置文本框的默认高度
         self.adjustPlainTextEditHeight(self.plainTextEdit_LSV_Data, minHeight=72)
+        self.adjustPlainTextEditHeight(self.plainTextEdit_LSV_Label, minHeight=72)
 
         # 恢复按钮文字并重置状态标志
         self.btn_importData_LSV.setText("导入数据")
@@ -488,7 +492,8 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
             self.plainTextEdit_Cdl_Label.setPlainText(new_label_text)
 
             # 调整文本框高度以显示所有内容
-            self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl_Data)
+            # self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl_Data)
+            # self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl_Label)
 
     # Cdl数据导入方法
     def importData_Cdl(self):
@@ -522,6 +527,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
         # 设置文本框的默认高度
         self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl_Data, minHeight=72)
+        self.adjustPlainTextEditHeight(self.plainTextEdit_Cdl_Label, minHeight=72)
 
         # 恢复按钮文字并重置状态标志
         self.btn_importData_Cdl.setText("导入数据")
@@ -697,6 +703,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
             # 调整文本框高度以显示所有内容
             self.adjustPlainTextEditHeight(self.plainTextEdit_Tafel_Data)
+            self.adjustPlainTextEditHeight(self.plainTextEdit_Tafel_Label)
 
     # Tafel 数据导入方法
     def importData_Tafel(self):
@@ -749,6 +756,7 @@ class FunctionWindow(QMainWindow, Ui_FunctionWindow):
 
         # 设置文本框的默认高度
         self.adjustPlainTextEditHeight(self.plainTextEdit_Tafel_Data, minHeight=72)
+        self.adjustPlainTextEditHeight(self.plainTextEdit_Tafel_Label, minHeight=72)
 
         # 移除 frame_TafelSlope 中的所有控件
         layout = self.frame_TafelSlope.layout()
